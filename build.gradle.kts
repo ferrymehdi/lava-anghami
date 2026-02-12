@@ -42,3 +42,11 @@ repositories {
 
     maven (url = "https://maven.lavalink.dev/releases")
 }
+
+publishing {
+    publications {
+        create<MavenPublication>("maven") {
+            from(components["java"])
+        }
+    }
+}
