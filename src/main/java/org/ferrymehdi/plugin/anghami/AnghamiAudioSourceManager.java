@@ -38,6 +38,7 @@ public class AnghamiAudioSourceManager implements AudioSourceManager, HttpConfig
 
     private static final Logger log = LoggerFactory.getLogger(AnghamiAudioSourceManager.class);
     private final HttpInterfaceManager httpInterfaceManager;
+    private final AnghamiApi anghamiApi;
 
     private final String anghamiToken;
     private final String reqKey;
@@ -58,6 +59,7 @@ public class AnghamiAudioSourceManager implements AudioSourceManager, HttpConfig
         }
 
         this.httpInterfaceManager = HttpClientTools.createCookielessThreadLocalManager();
+        this.anghamiApi = new AnghamiApi(anghamiToken, reqKey, resKey, USER_AGENT);
     }
 
     public AnghamiAudioSourceManager(String anghamiToken, String reqKey, String resKey){
@@ -279,4 +281,7 @@ public class AnghamiAudioSourceManager implements AudioSourceManager, HttpConfig
         return resKey;
     }
 
+    public AnghamiApi getApi() {
+        return this.anghamiApi;
+    }
 }
