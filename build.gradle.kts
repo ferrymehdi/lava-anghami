@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "org.ferrymehdi"
-version = "0.0.1-SNAPSHOT"
+version = "0.0.1"
 
 lavalinkPlugin {
     name = "lava-anghami"
