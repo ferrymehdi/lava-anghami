@@ -38,7 +38,7 @@ The plugin supports searching and direct URL resolution for Anghami tracks:
 * **Search:** `angsearch:hello adele`
 * **Direct Track URL:** `https://play.anghami.com/song/105381896`
 
-*(Note: Playlists, Albums, and Artists URL matching are currently patterned but may require future updates to resolve full lists).*
+*(Note: Playlists and Artists URL matching are currently patterned but may require future updates to resolve full lists).*
 
 ---
 
