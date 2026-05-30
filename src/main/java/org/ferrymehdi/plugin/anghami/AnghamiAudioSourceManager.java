@@ -235,7 +235,52 @@ public class AnghamiAudioSourceManager implements AudioSourceManager, HttpConfig
     }
 
     private AudioItem getAlbum(String id) throws IOException {
-        return AudioReference.NO_TRACK;
+        String url = UriComponentsBuilder.fromHttpUrl(PRIVATE_API_BASE)
+                .queryParam("type", "GETalbumdata")
+                .queryParam("albumId", id)
+                .queryParam("lang", language)
+                .queryParam("language", language)
+                .queryParam("output", "jsonhp")
+                .queryParam("sid", anghamiToken)
+                .toUriString();
+
+        String json = getJson(url);
+        if (json == null) {
+            return AudioReference.NO_TRACK;
+        }
+
+        JSONObject jsonObject = new JSONObject(json);
+        if (!jsonObject.has("sections")) {
+            log.warn("Invalid response from Anghami API for album ID: {}", id);
+            return AudioReference.NO_TRACK;
+        }
+
+        String albumTitle = jsonObject.optString("title", "Unknown Album");
+        List<AudioTrack> tracks = new ArrayList<>();
+        JSONArray sections = jsonObject.getJSONArray("sections");
+        for (int i = 0; i < sections.length(); i++) {
+            JSONObject section = sections.getJSONObject(i);
+
+            if ("song".equals(section.optString("type")) && "album_songs".equals(section.optString("group"))) {
+                JSONArray data = section.getJSONArray("data");
+
+                for (int j = 0; j < data.length(); j++) {
+                    JSONObject trackInfo = data.getJSONObject(j);
+                    if (j == 0 && "Unknown Album".equals(albumTitle)) {
+                        albumTitle = trackInfo.optString("album", "Unknown Album");
+                    }
+                    AudioTrackInfo track = parseTrack(trackInfo);
+                    tracks.add(new AnghmiAudioTrack(track, this));
+                }
+                break;
+            }
+        }
+
+        if (tracks.isEmpty()) {
+            return AudioReference.NO_TRACK;
+        }
+
+        return new BasicAudioPlaylist(albumTitle, tracks, null, false);
     }
 
     private AudioItem getPlaylist(String id) throws IOException {
