@@ -328,8 +328,45 @@ public class AnghamiAudioSourceManager implements AudioSourceManager, HttpConfig
     }
 
     private AudioItem getArtist(String id) throws IOException {
-        return AudioReference.NO_TRACK;
-    }
+        String url = UriComponentsBuilder.fromHttpUrl(PRIVATE_API_BASE)
+                .queryParam("type", "GETartistprofile")
+                .queryParam("artistId", id)
+                .queryParam("lang", language)
+                .queryParam("language", language)
+                .queryParam("output", "jsonhp")
+                .queryParam("web2", "true")
+                .queryParam("sid", anghamiToken)
+                .toUriString();
+
+        String json = getJson(url);
+        if (json == null) return AudioReference.NO_TRACK;
+
+        JSONObject jsonObject = new JSONObject(json);
+        String artistName = jsonObject.optString("name", jsonObject.optString("title", "Artist Top Tracks"));
+        List<AudioTrack> tracks = new ArrayList<>();
+
+        if (jsonObject.has("sections")) {
+            JSONArray sections = jsonObject.getJSONArray("sections");
+            for (int i = 0; i < sections.length(); i++) {
+                JSONObject section = sections.getJSONObject(i);
+                if ("song".equals(section.optString("type")) || "songs".equals(section.optString("group"))) {
+                    JSONArray data = section.optJSONArray("data");
+                    if (data != null) {
+                        for (int j = 0; j < data.length(); j++) {
+                            tracks.add(new AnghmiAudioTrack(parseTrack(data.getJSONObject(j)), this));
+                        }
+                        break;
+                    }
+                }
+            }
+        } else if (jsonObject.has("data")) {
+            JSONArray data = jsonObject.optJSONArray("data");
+            if (data != null) {
+                for (int i = 0; i < data.length(); i++) {
+                    tracks.add(new AnghmiAudioTrack(parseTrack(data.getJSONObject(i)), this));
+                }
+            }
+        }
 
         if (tracks.isEmpty()) return AudioReference.NO_TRACK;
         return new BasicAudioPlaylist(artistName, tracks, null, false);
