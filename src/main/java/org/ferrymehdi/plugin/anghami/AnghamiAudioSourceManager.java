@@ -227,73 +227,112 @@ public class AnghamiAudioSourceManager implements AudioSourceManager, HttpConfig
         return new AnghmiAudioTrack(parseTrack(new JSONObject(json)), this);
     }
 
-    private AudioItem getTrack(String id) throws IOException {
-        JSONObject trackInfo = getTrackInfo(id);
+    private AudioItem getCollection(String id, String typeName) {
+        String apiType = typeName.equals("album") ? "GETalbumdata" : "GETplaylistdata";
+        String idParam = typeName.equals("album") ? "albumId" : "playlistid";
 
-        if (trackInfo == null)
-            return AudioReference.NO_TRACK;
-        return new AnghmiAudioTrack(parseTrack(trackInfo), this);
-    }
-
-    private AudioItem getAlbum(String id) throws IOException {
         String url = UriComponentsBuilder.fromHttpUrl(PRIVATE_API_BASE)
-                .queryParam("type", "GETalbumdata")
-                .queryParam("albumId", id)
+                .queryParam("type", apiType)
+                .queryParam(idParam, id)
                 .queryParam("lang", language)
                 .queryParam("language", language)
                 .queryParam("output", "jsonhp")
+                .queryParam("web2", "true")
+                .queryParam("buffered", "1")
                 .queryParam("sid", anghamiToken)
                 .toUriString();
 
         String json = getJson(url);
-        if (json == null) {
-            return AudioReference.NO_TRACK;
-        }
+        if (json == null) return AudioReference.NO_TRACK;
 
         JSONObject jsonObject = new JSONObject(json);
-        if (!jsonObject.has("sections")) {
-            log.warn("Invalid response from Anghami API for album ID: {}", id);
+        if ("failed".equals(jsonObject.optString("status")) || jsonObject.has("error")) {
             return AudioReference.NO_TRACK;
         }
 
-        String albumTitle = jsonObject.optString("title", "Unknown Album");
+        JSONObject metaContainer = jsonObject;
+        if (jsonObject.has("playlist")) {
+            JSONObject pl = jsonObject.getJSONObject("playlist");
+            metaContainer = pl.has("_attributes") ? pl.getJSONObject("_attributes") : pl;
+        } else if (jsonObject.has("album")) {
+            JSONObject al = jsonObject.getJSONObject("album");
+            metaContainer = al.has("_attributes") ? al.getJSONObject("_attributes") : al;
+        }
+
+        String collectionTitle = jsonObject.optString("title",
+                jsonObject.optString("name",
+                        metaContainer.optString("title",
+                                metaContainer.optString("name", "Unknown " + typeName))));
+
         List<AudioTrack> tracks = new ArrayList<>();
-        JSONArray sections = jsonObject.getJSONArray("sections");
-        for (int i = 0; i < sections.length(); i++) {
-            JSONObject section = sections.getJSONObject(i);
 
-            if ("song".equals(section.optString("type")) && "album_songs".equals(section.optString("group"))) {
-                JSONArray data = section.getJSONArray("data");
+        if (metaContainer.has("songbuffers")) {
+            JSONArray buffers = metaContainer.optJSONArray("songbuffers");
+            if (buffers != null) {
+                String orderStr = metaContainer.optString("songorder", jsonObject.optString("songorder", null));
 
-                for (int j = 0; j < data.length(); j++) {
-                    JSONObject trackInfo = data.getJSONObject(j);
-                    if (j == 0 && "Unknown Album".equals(albumTitle)) {
-                        albumTitle = trackInfo.optString("album", "Unknown Album");
-                    }
-                    AudioTrackInfo track = parseTrack(trackInfo);
-                    tracks.add(new AnghmiAudioTrack(track, this));
+                List<JSONObject> decodedSongs = AnghamiProtobufDecoder.decodeSongBuffers(buffers, orderStr);
+                for (JSONObject song : decodedSongs) {
+                    tracks.add(new AnghmiAudioTrack(parseTrack(song), this));
                 }
-                break;
+            }
+        }
+
+        if (tracks.isEmpty() && jsonObject.has("sections")) {
+            JSONArray sections = jsonObject.getJSONArray("sections");
+            for (int i = 0; i < sections.length(); i++) {
+                JSONObject section = sections.getJSONObject(i);
+
+                if (section.optInt("show_recommendations", 0) == 1 || "Recommended songs".equals(section.optString("title"))) {
+                    continue;
+                }
+
+                String secType = section.optString("type");
+                String secGroup = section.optString("group", "");
+
+                if ("song".equals(secType) || "songs".equals(secGroup) || "album_songs".equals(secGroup)) {
+                    JSONArray data = section.optJSONArray("data");
+                    if (data != null && data.length() > 0) {
+                        for (int j = 0; j < data.length(); j++) {
+                            tracks.add(new AnghmiAudioTrack(parseTrack(data.getJSONObject(j)), this));
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (tracks.isEmpty() && metaContainer.has("data")) {
+            JSONArray data = metaContainer.optJSONArray("data");
+            if (data != null) {
+                for (int i = 0; i < data.length(); i++) {
+                    tracks.add(new AnghmiAudioTrack(parseTrack(data.getJSONObject(i)), this));
+                }
             }
         }
 
         if (tracks.isEmpty()) {
+            log.warn("Could not find any tracks in Anghami {} ID: {}", typeName, id);
             return AudioReference.NO_TRACK;
         }
 
-        return new BasicAudioPlaylist(albumTitle, tracks, null, false);
+        return new BasicAudioPlaylist(collectionTitle, tracks, null, false);
+    }
+
+    private AudioItem getAlbum(String id) throws IOException {
+        return getCollection(id, "album");
     }
 
     private AudioItem getPlaylist(String id) throws IOException {
-        return AudioReference.NO_TRACK;
+        return getCollection(id, "playlist");
     }
 
     private AudioItem getArtist(String id) throws IOException {
         return AudioReference.NO_TRACK;
     }
 
-    public HttpInterface getHttpInterface() {
-        return httpInterfaceManager.getInterface();
+        if (tracks.isEmpty()) return AudioReference.NO_TRACK;
+        return new BasicAudioPlaylist(artistName, tracks, null, false);
     }
 
     public HttpInterface getHttpInterface() { return httpInterfaceManager.getInterface(); }
