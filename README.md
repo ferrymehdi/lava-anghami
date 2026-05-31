@@ -27,6 +27,7 @@ plugins:
 
 > **Note:** To get your `anghamiToken`, `reqKey`, and `resKey`, log into Anghami in your browser and check your Local Storage/Cookies via Developer Tools. For a full `application.yml` example, check the repo.
 
+⚠️ Warning: "Geographic restrictions are a reality." Let's not hide the fact that Anghami imposes strict geographic restrictions. If you are outside the Middle East and North Africa (the Arab region), the capitalist system prevails, and you must have an Anghami Plus (premium) account to use this add-on and stream any content. However, if you are in an Arab country, you are bypassed! You can use this add-on seamlessly, even with a free account.
 ### Manual Installation
 
 Download the latest `.jar` release and place it into your `plugins` folder.
