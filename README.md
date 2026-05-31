@@ -35,8 +35,11 @@ Download the latest `.jar` release and place it into your `plugins` folder.
 
 The plugin supports searching and direct URL resolution for Anghami tracks:
 
-* **Search:** `angsearch:hello adele`
-* **Direct Track URL:** `https://play.anghami.com/song/105381896`
+* `angsearch:hello adele`
+* https://play.anghami.com/song/105381896
+* https://play.anghami.com/album/1018732306
+* https://play.anghami.com/artist/89236
+* https://play.anghami.com/playlist/105381896
 
 ---
 
