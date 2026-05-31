@@ -112,6 +112,8 @@ public class AnghamiAudioSourceManager implements AudioSourceManager, HttpConfig
     private AudioTrackInfo parseTrack(JSONObject json) {
         String title = json.optString("title");
         String artist = json.optString("artist");
+        String title = json.optString("title", "Unknown Title");
+        String artist = json.optString("artist", "Unknown Artist");
         String coverId = json.optString("coverArt");
         int duration = (int) json.optDouble("duration", 0) * 1000;
         String id = json.optString("id");
@@ -183,17 +185,12 @@ public class AnghamiAudioSourceManager implements AudioSourceManager, HttpConfig
                     .addHeader("Accept-Language", "en-US,en;q=0.9")
                     .addHeader("Referer", "https://play.anghami.com/")
                     .addHeader("Origin", "https://play.anghami.com")
-                    .addHeader("sec-ch-ua", "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\", \"Google Chrome\";v=\"121\"")
-                    .addHeader("sec-ch-ua-mobile", "?0")
-                    .addHeader("sec-ch-ua-platform", "\"Windows\"")
                     .get()
                     .build();
 
             Response response = client.newCall(request).execute();
             if (response.code() != 200) {
-                System.out.println(response.body().string());
-                log.warn("Failed to fetch Data from Anghami track data Status code: {}",
-                        response.code());
+                log.warn("Failed to fetch Data from Anghami track data Status code: {}", response.code());
                 return null;
             }
             assert response.body() != null;
@@ -290,38 +287,25 @@ public class AnghamiAudioSourceManager implements AudioSourceManager, HttpConfig
         return httpInterfaceManager.getInterface();
     }
 
+    public HttpInterface getHttpInterface() { return httpInterfaceManager.getInterface(); }
+
     @Override
     public void shutdown() {
-        try {
-            this.httpInterfaceManager.close();
-        } catch (IOException e) {
-            log.error("Failed to close HTTP interface manager", e);
-        }
+        try { this.httpInterfaceManager.close(); }
+        catch (IOException e) { log.error("Failed to close HTTP interface manager", e); }
     }
 
     @Override
-    public void configureRequests(Function<RequestConfig, RequestConfig> function) {
-        httpInterfaceManager.configureRequests(function);
-    }
+    public void configureRequests(Function<RequestConfig, RequestConfig> function) { httpInterfaceManager.configureRequests(function); }
 
     @Override
-    public void configureBuilder(Consumer<HttpClientBuilder> consumer) {
-        httpInterfaceManager.configureBuilder(consumer);
-    }
-
-    public String getAnghamiToken(){
-        return anghamiToken;
-    }
+    public void configureBuilder(Consumer<HttpClientBuilder> consumer) { httpInterfaceManager.configureBuilder(consumer); }
 
     public String getReqKey(){
         return reqKey;
     }
-
-    public String getResKey(){
-        return resKey;
-    }
-
-    public AnghamiApi getApi() {
-        return this.anghamiApi;
-    }
+    public String getAnghamiToken() { return anghamiToken; }
+    public String getReqKey() { return reqKey; }
+    public String getResKey() { return resKey; }
+    public AnghamiApi getApi() { return this.anghamiApi; }
 }
