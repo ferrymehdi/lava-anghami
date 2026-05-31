@@ -52,12 +52,7 @@ public class AnghamiAudioSourceManager implements AudioSourceManager, HttpConfig
         this.anghamiToken = anghamiToken;
         this.reqKey = reqKey;
         this.resKey = resKey;
-        if(language != null && !language.isEmpty()){
-            this.language = language;
-        } else {
-            this.language = "en";
-        }
-
+        this.language = (language != null && !language.isEmpty()) ? language : "en";
         this.httpInterfaceManager = HttpClientTools.createCookielessThreadLocalManager();
         this.anghamiApi = new AnghamiApi(anghamiToken, reqKey, resKey, USER_AGENT);
     }
