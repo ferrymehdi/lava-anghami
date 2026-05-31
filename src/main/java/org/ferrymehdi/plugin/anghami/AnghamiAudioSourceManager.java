@@ -108,21 +108,38 @@ public class AnghamiAudioSourceManager implements AudioSourceManager, HttpConfig
         return new AnghmiAudioTrack(audioTrackInfo, this);
     }
 
-
     private AudioTrackInfo parseTrack(JSONObject json) {
-        String title = json.optString("title");
-        String artist = json.optString("artist");
         String title = json.optString("title", "Unknown Title");
         String artist = json.optString("artist", "Unknown Artist");
         String coverId = json.optString("coverArt");
-        int duration = (int) json.optDouble("duration", 0) * 1000;
         String id = json.optString("id");
 
-        return new AudioTrackInfo(title, artist, duration,
-                id,
-                false,
+        long durationMs = 0;
+
+        if (json.has("duration_ms")) {
+            Object msObj = json.get("duration_ms");
+            if (msObj instanceof Number) {
+                durationMs = ((Number) msObj).longValue();
+            } else if (msObj instanceof String) {
+                try { durationMs = Long.parseLong((String) msObj); } catch (Exception ignored) {}
+            }
+        }
+
+        if (durationMs == 0 && json.has("duration")) {
+            Object durObj = json.get("duration");
+            double durSecs = 0;
+            if (durObj instanceof Number) {
+                durSecs = ((Number) durObj).doubleValue();
+            } else if (durObj instanceof String) {
+                try { durSecs = Double.parseDouble((String) durObj); } catch (Exception ignored) {}
+            }
+            durationMs = Math.round(durSecs * 1000.0);
+        }
+
+        return new AudioTrackInfo(title, artist, durationMs,
+                id, false,
                 "https://play.anghami.com/song/" + id,
-                "https://artwork.anghcdn.co/webp/?id=" + coverId,
+                coverId == null || coverId.isEmpty() ? null : "https://artwork.anghcdn.co/webp/?id=" + coverId,
                 null);
     }
 
@@ -141,27 +158,21 @@ public class AnghamiAudioSourceManager implements AudioSourceManager, HttpConfig
                 .queryParam("sid", this.anghamiToken)
                 .toUriString();
         String json = getJson(url);
-        if (json == null)
-            return AudioReference.NO_TRACK;
-        System.out.println(json);
+        if (json == null) return AudioReference.NO_TRACK;
 
         JSONObject jsonObject = new JSONObject(json);
-        if (!jsonObject.has("sections")) {
-            log.warn("Invalid response from Anghami API for search query: {}", query);
-            return AudioReference.NO_TRACK;
-        }
+        if (!jsonObject.has("sections")) return AudioReference.NO_TRACK;
 
         JSONArray sections = jsonObject.getJSONArray("sections");
         for (int i = 0; i < sections.length(); i++) {
             JSONObject section = sections.getJSONObject(i);
-            if (section.getString("type").equals("genericitem")) {
-                JSONArray data = section.getJSONArray("data");
-                List<AudioTrack> tracks = new ArrayList<>();
+            if ("genericitem".equals(section.optString("type"))) {
+                JSONArray data = section.optJSONArray("data");
+                if (data == null) continue;
 
+                List<AudioTrack> tracks = new ArrayList<>();
                 for (int j = 0; j < data.length(); j++) {
-                    JSONObject trackInfo = data.getJSONObject(j);
-                    AudioTrackInfo track = parseTrack(trackInfo);
-                    tracks.add(new AnghmiAudioTrack(track, this));
+                    tracks.add(new AnghmiAudioTrack(parseTrack(data.getJSONObject(j)), this));
                 }
 
                 if (!tracks.isEmpty()) {
@@ -201,7 +212,7 @@ public class AnghamiAudioSourceManager implements AudioSourceManager, HttpConfig
         }
     }
 
-    private JSONObject getTrackInfo(String id) {
+    private AudioItem getTrack(String id) throws IOException {
         String url = UriComponentsBuilder.fromHttpUrl(PRIVATE_API_BASE)
                 .queryParam("type", "GETsongdata")
                 .queryParam("songid", id)
@@ -212,10 +223,8 @@ public class AnghamiAudioSourceManager implements AudioSourceManager, HttpConfig
                 .toUriString();
         String json = getJson(url);
 
-        if (json == null)
-            return null;
-
-        return new JSONObject(json);
+        if (json == null) return AudioReference.NO_TRACK;
+        return new AnghmiAudioTrack(parseTrack(new JSONObject(json)), this);
     }
 
     private AudioItem getTrack(String id) throws IOException {
@@ -301,9 +310,6 @@ public class AnghamiAudioSourceManager implements AudioSourceManager, HttpConfig
     @Override
     public void configureBuilder(Consumer<HttpClientBuilder> consumer) { httpInterfaceManager.configureBuilder(consumer); }
 
-    public String getReqKey(){
-        return reqKey;
-    }
     public String getAnghamiToken() { return anghamiToken; }
     public String getReqKey() { return reqKey; }
     public String getResKey() { return resKey; }
