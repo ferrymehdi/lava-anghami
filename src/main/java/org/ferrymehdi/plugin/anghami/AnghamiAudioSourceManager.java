@@ -45,8 +45,8 @@ public class AnghamiAudioSourceManager implements AudioSourceManager, HttpConfig
     private final String resKey;
     private final String language;
 
-    public AnghamiAudioSourceManager(String anghamiToken, String reqKey, String resKey, String language){
-        if(anghamiToken == null || reqKey == null || resKey == null){
+    public AnghamiAudioSourceManager(String anghamiToken, String reqKey, String resKey, String language) {
+        if (anghamiToken == null || reqKey == null || resKey == null) {
             throw new IllegalStateException("Anghami token, request key and response key must be set");
         }
         this.anghamiToken = anghamiToken;
