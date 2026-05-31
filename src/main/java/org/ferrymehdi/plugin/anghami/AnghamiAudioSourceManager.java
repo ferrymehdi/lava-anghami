@@ -409,8 +409,5 @@ public class AnghamiAudioSourceManager implements AudioSourceManager, HttpConfig
     @Override
     public void configureBuilder(Consumer<HttpClientBuilder> consumer) { httpInterfaceManager.configureBuilder(consumer); }
 
-    public String getAnghamiToken() { return anghamiToken; }
-    public String getReqKey() { return reqKey; }
-    public String getResKey() { return resKey; }
     public AnghamiApi getApi() { return this.anghamiApi; }
 }
