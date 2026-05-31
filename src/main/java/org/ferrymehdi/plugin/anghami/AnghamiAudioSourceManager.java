@@ -277,6 +277,29 @@ public class AnghamiAudioSourceManager implements AudioSourceManager, HttpConfig
                 }
             }
         }
+        if (tracks.isEmpty()) {
+            JSONObject targetObject = null;
+            if(jsonObject.has("playlist") && jsonObject.getJSONObject("playlist").has("songs")) {
+                targetObject = jsonObject.getJSONObject("playlist").getJSONObject("songs");
+            } else if (jsonObject.has("songs")) {
+                targetObject = jsonObject.optJSONObject("songs");
+            } else if (metaContainer.has("songs")) {
+                targetObject = metaContainer.optJSONObject("songs");
+            }
+
+            if (targetObject != null) {
+                int count = 0;
+                while (targetObject.has(String.valueOf(count))) {
+                    JSONObject songWrapper = targetObject.getJSONObject(String.valueOf(count));
+                    if (songWrapper.has("_attributes")) {
+                        tracks.add(new AnghmiAudioTrack(parseTrack(songWrapper.getJSONObject("_attributes")), this));
+                    } else {
+                        tracks.add(new AnghmiAudioTrack(parseTrack(songWrapper), this));
+                    }
+                    count++;
+                }
+            }
+        }
 
         if (tracks.isEmpty() && jsonObject.has("sections")) {
             JSONArray sections = jsonObject.getJSONArray("sections");
