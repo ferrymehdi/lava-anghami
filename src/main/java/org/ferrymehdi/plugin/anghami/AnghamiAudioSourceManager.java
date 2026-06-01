@@ -31,6 +31,8 @@ import java.util.regex.Pattern;
 public class AnghamiAudioSourceManager implements AudioSourceManager, HttpConfigurable {
     public static final Pattern URL_PATTERN = Pattern.compile(
             "(https?://)?(www\\.)?play\\.anghami\\.com/(?<type>artist|album|song|playlist)/(?<identifier>[0-9]+)");
+    public static final Pattern SHARE_URL_PATTERN = Pattern.compile(
+            "(https?://)?(www\\.)?(anghami\\.app\\.link|play\\.anghami\\.com/share/).*");
     public static final String SEARCH_PREFIX = "angsearch:";
     public static final String PRIVATE_API_BASE = "https://coussa.anghami.com/gateway.php";
     public static final String SEARCH_API_BASE = "https://coussa.anghami.com/rest/v2/GETSearchResults.view";
@@ -73,6 +75,10 @@ public class AnghamiAudioSourceManager implements AudioSourceManager, HttpConfig
         try {
             if (identifier.startsWith(SEARCH_PREFIX)) {
                 return this.getSearch(identifier.substring(SEARCH_PREFIX.length()));
+            }
+
+            if (SHARE_URL_PATTERN.matcher(identifier).find()) {
+                identifier = resolveRedirect(identifier);
             }
 
             var matcher = URL_PATTERN.matcher(identifier);
@@ -141,6 +147,33 @@ public class AnghamiAudioSourceManager implements AudioSourceManager, HttpConfig
                 "https://play.anghami.com/song/" + id,
                 coverId == null || coverId.isEmpty() ? null : "https://artwork.anghcdn.co/webp/?id=" + coverId,
                 null);
+    }
+
+    private String resolveRedirect(String url) {
+        try {
+            OkHttpClient redirectClient = new OkHttpClient.Builder()
+                    .followRedirects(false)
+                    .followSslRedirects(false)
+                    .build();
+
+            Request request = new Request.Builder()
+                    .url(url)
+                    .addHeader("User-Agent", USER_AGENT)
+                    .build();
+
+            try (Response response = redirectClient.newCall(request).execute()) {
+                if (response.isRedirect()) {
+                    String location = response.header("Location");
+                    if (location != null && !location.isEmpty()) {
+                        log.info("Resolved Anghami App Link to: {}", location);
+                        return location;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Failed to resolve Anghami redirect for: {}", url, e);
+        }
+        return url;
     }
 
     private AudioItem getSearch(String query) throws IOException {
