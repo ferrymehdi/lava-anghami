@@ -22,7 +22,7 @@ import java.util.Map;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
-public class AnghamiApi {
+public class AnghamiTrackResolver {
     private final String sessionId;
     private final String reqKey;
     private final String resKey;
@@ -30,7 +30,7 @@ public class AnghamiApi {
     private final LazySodiumJava sodium;
     private final OkHttpClient httpClient;
 
-    public AnghamiApi(String sessionId, String reqKey, String resKey, String userAgent) {
+    public AnghamiTrackResolver(String sessionId, String reqKey, String resKey, String userAgent) {
         this.sessionId = sessionId;
         this.reqKey = reqKey;
         this.resKey = resKey;
