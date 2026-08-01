@@ -29,7 +29,7 @@ public class AnghmiAudioTrack extends DelegatedAudioTrack {
     }
 
     public String getDirectUrl(String trackId) {
-        return this.sourceManager.getApi().getTrackUrl(trackId);
+        return this.sourceManager.getTrackResolver().getTrackUrl(trackId);
     }
 
     @Override
